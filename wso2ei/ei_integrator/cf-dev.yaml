@@ -439,10 +439,10 @@ Resources:
             - ''
             - - !Ref Product
           PropagateAtLaunch: 'true'
-    CreationPolicy:
-      ResourceSignal:
-        Count: 1
-        Timeout: PT20M
+#    CreationPolicy:
+#      ResourceSignal:
+#        Count: 1
+#        Timeout: PT20M
     UpdatePolicy:
       AutoScalingRollingUpdate:
         MaxBatchSize: '2'
@@ -453,183 +453,183 @@ Resources:
         WaitOnResourceSignals: true
     DependsOn:
       - WSO2LoadBalancer
-  WSO2Node2LaunchConfiguration:
-    Type: 'AWS::AutoScaling::LaunchConfiguration'
-    Properties:
-      ImageId: !Ref AMIid
-      InstanceType: !Ref WSO2InstanceType
-      InstanceMonitoring: 'false'
-      BlockDeviceMappings:
-        - DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: '20'
-            VolumeType: gp2
-            DeleteOnTermination: 'true'
-      KeyName: !Ref KeyPairName
-      SecurityGroups:
-        - !Ref WSO2SecurityGroup
-      UserData: !Base64
-        'Fn::Sub': |
-          Content-Type: multipart/mixed; boundary="//"
-          MIME-Version: 1.0
-
-          --//
-          Content-Type: text/cloud-config; charset="us-ascii"
-          MIME-Version: 1.0
-          Content-Transfer-Encoding: 7bit
-          Content-Disposition: attachment; filename="cloud-config.txt"
-
-          #cloud-config
-          cloud_final_modules:
-          - [scripts-user, always]
-
-          --//
-          Content-Type: text/x-shellscript; charset="us-ascii"
-          MIME-Version: 1.0
-          Content-Transfer-Encoding: 7bit
-          Content-Disposition: attachment; filename="userdata.txt"
-
-          #!/bin/bash
-          export PATH=~/.local/bin:$PATH
-          wget https://github.com/gvalkov/tailon/releases/download/v1.0.0/tailon_1.0.0_linux_amd64.tar.gz -P /home/wso2user/
-          chmod +x /home/wso2user/tailon_1.0.0_linux_amd64.tar.gz
-          tar -xvf /home/wso2user/tailon_1.0.0_linux_amd64.tar.gz -C /home/wso2user
-          unzip /home/wso2user/${Product}-${Version}.zip -d /home/wso2user/
-          cp /home/wso2user/endpointCars/*_staging*.car /home/wso2user/${Product}-${Version}/repository/deployment/server/carbonapps
-          sed -i "s/ACCESS_KEY/${AWSAccessKeyId}/g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
-          sed -i "s/REGION_NAME/${AWS::Region}/g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
-          sed -i "s/ALB_DNS_NAME/${WSO2LoadBalancer.DNSName}/g" /home/wso2user/${Product}-${Version}/conf/carbon.xml
-          sed -i "s/CF_DB_USERNAME/${DBUsername}/g" /home/wso2user/${Product}-${Version}/conf/datasources/master-datasources.xml
-          sed -i "s/CF_DB_PASSWORD/${DBPassword}/g" /home/wso2user/${Product}-${Version}/conf/datasources/master-datasources.xml
-          sed -i "s/RDS_DNS_NAME/${WSO2DBInstance.Endpoint.Address}/g" /home/wso2user/${Product}-${Version}/conf/datasources/master-datasources.xml
-          sed -i "s^SECRET_KEY^${AWSAccessKeySecret}^g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
-          tar -xvf /opt/OpenJDK8U-jdk_8u222_linux_x64.tar.gz -C /opt/
-          export PRIVATE_IP=$(ifconfig | grep -m 1 'inet ' | awk '{print $2}')
-          export LogserverIP=${WSO2LoggingInstance.PrivateIp}
-          echo "$LogserverIP logserver" >> /etc/hosts
-          sed -i "s/LOCAL-MEMBER-HOST/$PRIVATE_IP/g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
-          /home/wso2user/${Product}-${Version}/bin/integrator.sh start
-          echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
-          cat /dev/null > ~/.bash_history && history -c
-          nohup /home/wso2user/tailon alias=wso2_logs,/home/wso2user/${Product}-${Version}/repository/logs/* > nohup.out 2>&1 &
-          end=$((SECONDS+600))
-          while [ $SECONDS -lt $end ] ; do
-              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
-              if [ $? -eq "0" ] ; then
-                sleep 30
-                /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2Node2AutoScalingGroup --region ${AWS::Region}
-              fi
-          done
-    DependsOn:
-      - WSO2SecurityGroup
-      - WSO2LoadBalancer
-      - WSO2VPCInternetGatewayAttachment
-      - WSO2DBInstance
-      - WSO2BastionInstance
-      - WSO2LoggingInstance
-  WSO2Node2AutoScalingGroup:
-    Type: 'AWS::AutoScaling::AutoScalingGroup'
-    Properties:
-      LaunchConfigurationName: !Ref WSO2Node2LaunchConfiguration
-      DesiredCapacity: 1
-      MinSize: 1
-      MaxSize: 2
-      TargetGroupARNs:
-        - !Ref WSO2ALBTargetGroup
-        - !Ref WSO28243ALBTargetGroup
-        - !Ref WSO2ServicesALBTargetGroup
-      VPCZoneIdentifier:
-        - !Ref WSO2PrivateSubnet2
-      Tags:
-        - Key: Name
-          Value: !Join
-            - ''
-            - - 'WSO2Instance2'
-              - !Ref Environment
-          PropagateAtLaunch: 'true'
-        - Key: cluster
-          Value: !Join
-            - ''
-            - - !Ref Product
-          PropagateAtLaunch: 'true'
-    CreationPolicy:
-      ResourceSignal:
-        Count: 1
-        Timeout: PT20M
-    UpdatePolicy:
-      AutoScalingRollingUpdate:
-        MaxBatchSize: '2'
-        MinInstancesInService: '1'
-        PauseTime: PT10M
-        SuspendProcesses:
-          - AlarmNotification
-        WaitOnResourceSignals: true
-    DependsOn:
-      - WSO2LoadBalancer
-      - WSO2Node1AutoScalingGroup
-  WSO2LoadBalancerSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      VpcId: !Ref WSO2VPC
-      GroupDescription: WSO2 ALB Security Group
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '9763'
-          ToPort: '9763'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9443'
-          ToPort: '9443'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '8243'
-          ToPort: '8243'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '8280'
-          ToPort: '8280'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '4100'
-          ToPort: '4100'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '8080'
-          ToPort: '8080'
-          CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: '9763'
-          ToPort: '9763'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '9443'
-          ToPort: '9443'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '8243'
-          ToPort: '8243'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '8280'
-          ToPort: '8280'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '4100'
-          ToPort: '4100'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '8080'
-          ToPort: '8080'
-          CidrIp: 0.0.0.0/0
+#  WSO2Node2LaunchConfiguration:
+#    Type: 'AWS::AutoScaling::LaunchConfiguration'
+#    Properties:
+#      ImageId: !Ref AMIid
+#      InstanceType: !Ref WSO2InstanceType
+#      InstanceMonitoring: 'false'
+#      BlockDeviceMappings:
+#        - DeviceName: /dev/sda1
+#          Ebs:
+#            VolumeSize: '20'
+#            VolumeType: gp2
+#            DeleteOnTermination: 'true'
+#      KeyName: !Ref KeyPairName
+#      SecurityGroups:
+#        - !Ref WSO2SecurityGroup
+#      UserData: !Base64
+#        'Fn::Sub': |
+#          Content-Type: multipart/mixed; boundary="//"
+#          MIME-Version: 1.0
+#
+#          --//
+#          Content-Type: text/cloud-config; charset="us-ascii"
+#          MIME-Version: 1.0
+#          Content-Transfer-Encoding: 7bit
+#          Content-Disposition: attachment; filename="cloud-config.txt"
+#
+#          #cloud-config
+#          cloud_final_modules:
+#          - [scripts-user, always]
+#
+#          --//
+#          Content-Type: text/x-shellscript; charset="us-ascii"
+#          MIME-Version: 1.0
+#          Content-Transfer-Encoding: 7bit
+#          Content-Disposition: attachment; filename="userdata.txt"
+#
+#          #!/bin/bash
+#          export PATH=~/.local/bin:$PATH
+#          wget https://github.com/gvalkov/tailon/releases/download/v1.0.0/tailon_1.0.0_linux_amd64.tar.gz -P /home/wso2user/
+#          chmod +x /home/wso2user/tailon_1.0.0_linux_amd64.tar.gz
+#          tar -xvf /home/wso2user/tailon_1.0.0_linux_amd64.tar.gz -C /home/wso2user
+#          unzip /home/wso2user/${Product}-${Version}.zip -d /home/wso2user/
+#          cp /home/wso2user/endpointCars/*_staging*.car /home/wso2user/${Product}-${Version}/repository/deployment/server/carbonapps
+#          sed -i "s/ACCESS_KEY/${AWSAccessKeyId}/g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
+#          sed -i "s/REGION_NAME/${AWS::Region}/g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
+#          sed -i "s/ALB_DNS_NAME/${WSO2LoadBalancer.DNSName}/g" /home/wso2user/${Product}-${Version}/conf/carbon.xml
+#          sed -i "s/CF_DB_USERNAME/${DBUsername}/g" /home/wso2user/${Product}-${Version}/conf/datasources/master-datasources.xml
+#          sed -i "s/CF_DB_PASSWORD/${DBPassword}/g" /home/wso2user/${Product}-${Version}/conf/datasources/master-datasources.xml
+#          sed -i "s/RDS_DNS_NAME/${WSO2DBInstance.Endpoint.Address}/g" /home/wso2user/${Product}-${Version}/conf/datasources/master-datasources.xml
+#          sed -i "s^SECRET_KEY^${AWSAccessKeySecret}^g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
+#          tar -xvf /opt/OpenJDK8U-jdk_8u222_linux_x64.tar.gz -C /opt/
+#          export PRIVATE_IP=$(ifconfig | grep -m 1 'inet ' | awk '{print $2}')
+#          export LogserverIP=${WSO2LoggingInstance.PrivateIp}
+#          echo "$LogserverIP logserver" >> /etc/hosts
+#          sed -i "s/LOCAL-MEMBER-HOST/$PRIVATE_IP/g" /home/wso2user/${Product}-${Version}/conf/axis2/axis2.xml
+#          /home/wso2user/${Product}-${Version}/bin/integrator.sh start
+#          echo 'export HISTTIMEFORMAT="%F %T "' >> /etc/profile.d/history.sh
+#          cat /dev/null > ~/.bash_history && history -c
+#          nohup /home/wso2user/tailon alias=wso2_logs,/home/wso2user/${Product}-${Version}/repository/logs/* > nohup.out 2>&1 &
+#          end=$((SECONDS+600))
+#          while [ $SECONDS -lt $end ] ; do
+#              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+#              if [ $? -eq "0" ] ; then
+#                sleep 30
+#                /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2Node2AutoScalingGroup --region ${AWS::Region}
+#              fi
+#          done
+#    DependsOn:
+#      - WSO2SecurityGroup
+#      - WSO2LoadBalancer
+#      - WSO2VPCInternetGatewayAttachment
+#      - WSO2DBInstance
+#      - WSO2BastionInstance
+#      - WSO2LoggingInstance
+#  WSO2Node2AutoScalingGroup:
+#    Type: 'AWS::AutoScaling::AutoScalingGroup'
+#    Properties:
+#      LaunchConfigurationName: !Ref WSO2Node2LaunchConfiguration
+#      DesiredCapacity: 1
+#      MinSize: 1
+#      MaxSize: 2
+#      TargetGroupARNs:
+#        - !Ref WSO2ALBTargetGroup
+#        - !Ref WSO28243ALBTargetGroup
+#        - !Ref WSO2ServicesALBTargetGroup
+#      VPCZoneIdentifier:
+#        - !Ref WSO2PrivateSubnet2
+#      Tags:
+#        - Key: Name
+#          Value: !Join
+#            - ''
+#            - - 'WSO2Instance2'
+#              - !Ref Environment
+#          PropagateAtLaunch: 'true'
+#        - Key: cluster
+#          Value: !Join
+#            - ''
+#            - - !Ref Product
+#          PropagateAtLaunch: 'true'
+#    CreationPolicy:
+#      ResourceSignal:
+#        Count: 1
+#        Timeout: PT20M
+#    UpdatePolicy:
+#      AutoScalingRollingUpdate:
+#        MaxBatchSize: '2'
+#        MinInstancesInService: '1'
+#        PauseTime: PT10M
+#        SuspendProcesses:
+#          - AlarmNotification
+#        WaitOnResourceSignals: true
+#    DependsOn:
+#      - WSO2LoadBalancer
+#      - WSO2Node1AutoScalingGroup
+#  WSO2LoadBalancerSecurityGroup:
+#    Type: 'AWS::EC2::SecurityGroup'
+#    Properties:
+#      VpcId: !Ref WSO2VPC
+#      GroupDescription: WSO2 ALB Security Group
+#      SecurityGroupIngress:
+#        - IpProtocol: tcp
+#          FromPort: '9763'
+#          ToPort: '9763'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '443'
+#          ToPort: '443'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '9443'
+#          ToPort: '9443'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '8243'
+#          ToPort: '8243'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '8280'
+#          ToPort: '8280'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '4100'
+#          ToPort: '4100'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '8080'
+#          ToPort: '8080'
+#          CidrIp: 0.0.0.0/0
+#      SecurityGroupEgress:
+#        - IpProtocol: tcp
+#          FromPort: '9763'
+#          ToPort: '9763'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '9443'
+#          ToPort: '9443'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '443'
+#          ToPort: '443'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '8243'
+#          ToPort: '8243'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '8280'
+#          ToPort: '8280'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '4100'
+#          ToPort: '4100'
+#          CidrIp: 0.0.0.0/0
+#        - IpProtocol: tcp
+#          FromPort: '8080'
+#          ToPort: '8080'
+#          CidrIp: 0.0.0.0/0
   WSO2LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
