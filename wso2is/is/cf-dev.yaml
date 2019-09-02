@@ -399,11 +399,11 @@ Resources:
           cat /dev/null > ~/.bash_history && history -c
           nohup /home/wso2user/tailon alias=wso2_logs,/home/wso2user/${Product}-${Version}/repository/logs/* > nohup.out 2>&1 &
           end=$((SECONDS+800))
-          while [ $SECONDS -lt $end ] ; do
-              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp"
+          while [ $SECONDS -lt $end ] ; do 
+              wget --delete-after --server-response --no-check-certificate "https://localhost:9443/carbon/admin/login.jsp" > nohup1.out 2>&1 &
               if [ $? -eq "0" ] ; then
                 sleep 30
-                /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2Node1AutoScalingGroup --region ${AWS::Region}
+                /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource WSO2Node1AutoScalingGroup --region ${AWS::Region} > nohup1.out 2>&1 &
               fi
           done
     DependsOn:
