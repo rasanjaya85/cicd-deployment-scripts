@@ -567,69 +567,69 @@ Resources:
 #    DependsOn:
 #      - WSO2LoadBalancer
 #      - WSO2Node1AutoScalingGroup
-#  WSO2LoadBalancerSecurityGroup:
-#    Type: 'AWS::EC2::SecurityGroup'
-#    Properties:
-#      VpcId: !Ref WSO2VPC
-#      GroupDescription: WSO2 ALB Security Group
-#      SecurityGroupIngress:
-#        - IpProtocol: tcp
-#          FromPort: '9763'
-#          ToPort: '9763'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '443'
-#          ToPort: '443'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '9443'
-#          ToPort: '9443'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '8243'
-#          ToPort: '8243'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '8280'
-#          ToPort: '8280'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '4100'
-#          ToPort: '4100'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '8080'
-#          ToPort: '8080'
-#          CidrIp: 0.0.0.0/0
-#      SecurityGroupEgress:
-#        - IpProtocol: tcp
-#          FromPort: '9763'
-#          ToPort: '9763'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '9443'
-#          ToPort: '9443'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '443'
-#          ToPort: '443'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '8243'
-#          ToPort: '8243'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '8280'
-#          ToPort: '8280'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '4100'
-#          ToPort: '4100'
-#          CidrIp: 0.0.0.0/0
-#        - IpProtocol: tcp
-#          FromPort: '8080'
-#          ToPort: '8080'
-#          CidrIp: 0.0.0.0/0
+  WSO2LoadBalancerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !Ref WSO2VPC
+      GroupDescription: WSO2 ALB Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '9763'
+          ToPort: '9763'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '9443'
+          ToPort: '9443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8243'
+          ToPort: '8243'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8280'
+          ToPort: '8280'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '4100'
+          ToPort: '4100'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: '9763'
+          ToPort: '9763'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '9443'
+          ToPort: '9443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8243'
+          ToPort: '8243'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8280'
+          ToPort: '8280'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '4100'
+          ToPort: '4100'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIp: 0.0.0.0/0
   WSO2LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
